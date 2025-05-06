@@ -4,11 +4,11 @@ import React, { useEffect, useState } from "react";
 import { loadFirebaseAuth } from "../lib/loadFirebase";
 
 export default function ClientApp() {
-  const [firebaseReady, setFirebaseReady] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [firebaseReady, setFirebaseReady] = useState(false);
   const [url, setUrl] = useState("");
-  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadFirebaseAuth().then(({ auth, onAuthStateChanged }) => {
@@ -31,68 +31,57 @@ export default function ClientApp() {
     setUser(null);
   };
 
-  const handleScrape = async () => {
-    setLoading(true);
-    setMessage("");
-    try {
-      const res = await fetch("/api/scrape", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ url }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setMessage("✅ Data successfully scraped and exported to your Google Sheet.");
-      } else {
-        setMessage(data.error || "❌ An error occurred.");
-      }
-    } catch (err) {
-      setMessage("❌ Failed to scrape. Please try again.");
-    }
-    setLoading(false);
+  const handleUpgrade = async () => {
+    const res = await fetch("/api/stripe/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: user.email }),
+    });
+    const data = await res.json();
+    if (data.url) window.location.href = data.url;
   };
 
-  if (!firebaseReady) {
-    return <p className="text-center text-gray-500 mt-6">Connecting to Firebase…</p>;
-  }
-
   return (
-    <div className="w-full max-w-xl space-y-4 p-8">
-      {!user ? (
+    <div className="max-w-xl w-full space-y-4 p-8">
+      {!firebaseReady ? (
+        <p>Loading...</p>
+      ) : user ? (
+        <>
+          <p>Welcome, {user.displayName}</p>
+          <input
+            className="border w-full p-2 rounded"
+            type="text"
+            placeholder="Paste product URL..."
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+          />
+          <button
+            className="w-full bg-green-600 text-white py-2 rounded"
+            onClick={() => alert("Fake scrape logic here")}
+          >
+            Scrape
+          </button>
+          <button
+            className="w-full bg-blue-600 text-white py-2 rounded"
+            onClick={handleUpgrade}
+          >
+            Upgrade to Pro
+          </button>
+          <button
+            className="text-sm text-gray-500 hover:underline w-full"
+            onClick={handleLogout}
+          >
+            Log out
+          </button>
+          {message && <p className="text-center text-sm mt-2">{message}</p>}
+        </>
+      ) : (
         <button
+          className="w-full bg-blue-600 text-white py-2 rounded"
           onClick={handleLogin}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
         >
           Sign in with Google
         </button>
-      ) : (
-        <>
-          <p className="mb-2 text-sm text-gray-600">Welcome, {user.displayName}</p>
-          <input
-            type="text"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Paste product URL..."
-            className="w-full border px-4 py-2 rounded"
-          />
-          <button
-            onClick={handleScrape}
-            disabled={!url || loading}
-            className="bg-green-600 text-white px-4 py-2 rounded w-full hover:bg-green-700 disabled:opacity-50"
-          >
-            {loading ? "Scraping..." : "Go"}
-          </button>
-          {message && <p className="mt-4 text-sm text-center">{message}</p>}
-          <button
-            onClick={handleLogout}
-            className="mt-4 text-sm text-gray-500 hover:underline w-full"
-          >
-            Sign Out
-          </button>
-        </>
       )}
     </div>
   );
