@@ -30,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({ message: "Scrape successful", items });
   } catch (err) {
-    console.error("Scraping failed:", err);
-    return res.status(500).json({ error: "Scraping failed" });
-  }
+    console.error("❌ Scrape error:", err); // <-- add this
+    return res.status(500).json({ error: "Scraping failed", details: err instanceof Error ? err.message : err });
+  }  
 }
