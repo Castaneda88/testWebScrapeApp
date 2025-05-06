@@ -33,16 +33,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-    const allowed = await canScrape(email, items.length);
-    if (!allowed) {
-      return res.status(403).json({ error: 'Free tier limit reached. Upgrade to Pro.' });
-    }
+const allowed = await canScrape(email, items.length);
+if (!allowed) {
+  return res.status(403).json({ error: "Free tier limit reached. Upgrade to Pro." });
+}
 
     await incrementUsage(email, items.length);
 
     // Placeholder response
-    res.status(200).json({ message: "Scrape successful", items });
+    return res.status(200).json({ message: "Scrape successful", items });
   } catch (err) {
-    res.status(500).json({ error: 'Scraping failed' });
+    return res.status(500).json({ error: "Scraping failed" });
   }
 }
