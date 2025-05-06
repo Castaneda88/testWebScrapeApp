@@ -11,43 +11,76 @@ export default function ClientApp() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    console.log("🔄 useEffect triggered - loading Firebase Auth...");
     loadFirebaseAuth().then(({ auth, onAuthStateChanged }) => {
+      console.log("✅ Firebase Auth loaded");
       onAuthStateChanged(auth, (user) => {
+        if (user) {
+          console.log("👤 User logged in:", user);
+        } else {
+          console.log("👤 No user logged in");
+        }
         setUser(user);
         setFirebaseReady(true);
       });
+    }).catch(err => {
+      console.error("❌ Failed to load Firebase Auth", err);
     });
   }, []);
 
   const handleLogin = async () => {
     const { auth, GoogleAuthProvider, signInWithPopup } = await loadFirebaseAuth();
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    try {
+      const result = await signInWithPopup(auth, provider);
+      console.log("✅ Signed in:", result.user);
+    } catch (error) {
+      console.error("❌ Sign-in failed:", error);
+    }
   };
 
   const handleLogout = async () => {
     const { auth, signOut } = await loadFirebaseAuth();
-    await signOut(auth);
-    setUser(null);
+    try {
+      await signOut(auth);
+      setUser(null);
+      console.log("🚪 Signed out");
+    } catch (error) {
+      console.error("❌ Sign-out failed:", error);
+    }
   };
 
-  const handleUpgrade = async () => {
-    const res = await fetch("/api/stripe/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: user.email }),
-    });
-    const data = await res.json();
-    if (data.url) window.location.href = data.url;
+  const handleScrape = async () => {
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await fetch("/api/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, email: user?.email }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage("✅ Scrape succeeded");
+        console.log("📦 Scrape result:", data);
+      } else {
+        setMessage(data.error || "❌ Scrape failed");
+        console.error("❌ Scrape error:", data);
+      }
+    } catch (err) {
+      console.error("❌ Scrape failed:", err);
+      setMessage("❌ Scrape failed");
+    }
+    setLoading(false);
   };
 
   return (
     <div className="max-w-xl w-full space-y-4 p-8">
       {!firebaseReady ? (
-        <p>Loading...</p>
+        <p>Loading Firebase...</p>
       ) : user ? (
         <>
-          <p>Welcome, {user.displayName}</p>
+          <p>👋 Welcome, {user.displayName}</p>
           <input
             className="border w-full p-2 rounded"
             type="text"
@@ -57,23 +90,18 @@ export default function ClientApp() {
           />
           <button
             className="w-full bg-green-600 text-white py-2 rounded"
-            onClick={() => alert("Fake scrape logic here")}
+            onClick={handleScrape}
+            disabled={loading}
           >
-            Scrape
+            {loading ? "Scraping..." : "Scrape"}
           </button>
           <button
-            className="w-full bg-blue-600 text-white py-2 rounded"
-            onClick={handleUpgrade}
-          >
-            Upgrade to Pro
-          </button>
-          <button
-            className="text-sm text-gray-500 hover:underline w-full"
+            className="w-full bg-gray-700 text-white py-2 rounded"
             onClick={handleLogout}
           >
             Log out
           </button>
-          {message && <p className="text-center text-sm mt-2">{message}</p>}
+          {message && <p className="text-sm mt-2">{message}</p>}
         </>
       ) : (
         <button
