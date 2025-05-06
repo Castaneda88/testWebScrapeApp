@@ -1,9 +1,8 @@
 export const loadFirebaseAuth = async () => {
-  const firebaseAuth = await eval('import("firebase/auth")');
-  const firebaseApp = await eval('import("./firebase")');
+  const firebaseAuth = await import("firebase/auth");
+  const { app } = await import("./firebase");
 
   const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = firebaseAuth;
-  const { app } = firebaseApp;
 
   return {
     getAuth,
